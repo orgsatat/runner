@@ -1,0 +1,24 @@
+#!/bin/bash
+set -euo pipefail
+
+SOURCE="${BASH_SOURCE[0]}"
+# resolve $SOURCE until the file is no longer a symlink
+while [ -h "$SOURCE" ]; do
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  # if $SOURCE was a relative symlink, we need to resolve it relative to the
+  # path where the symlink file was located
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIRECTORY="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+LIBRARY_DIRECTORY=$SCRIPT_DIRECTORY/../lib/satat/
+
+
+if [ "$#" -ne 5 ]; then
+  echo "Script requires:"
+  exit 1
+fi
+
+rsync -aAX $SCRIPT_DIRECTORY/../share/https/ubuntu/20.04/website.bash $USERNAME@$TARGET:.
+ssh $USERNAME@$TARGET "sudo bash $HOME/website.bash $WEBSITE $USERNAME"
+ssh $USERNAME@$TARGET "rm $HOME/website.bash"
