@@ -1,0 +1,41 @@
+#!/bin/bash
+set -euo pipefail
+
+SOURCE="${BASH_SOURCE[0]}"
+# resolve $SOURCE until the file is no longer a symlink
+while [ -h "$SOURCE" ]; do
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  # if $SOURCE was a relative symlink, we need to resolve it relative to the
+  # path where the symlink file was located
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIRECTORY="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+LIBRARY_DIRECTORY=$SCRIPT_DIRECTORY/../lib/satat/
+
+
+if [ "$#" -ne 5 ]; then
+  echo "Script requires:"
+  echo "1. Distribution"
+  echo "2. Release"
+  echo "3. Target Hostname"
+  echo "4. Port"
+  echo "5. Username"
+  exit 1
+fi
+
+DISTRIBUTION=$1
+RELEASE=$2
+TARGET_HOSTNAME=$3
+PORT=$4
+USERNAME=$5
+
+source $LIBRARY_DIRECTORY/vps/$DISTRIBUTION/$RELEASE.bash
+
+satat_vps_system_update $TARGET_HOSTNAME
+satat_vps_user_add $TARGET_HOSTNAME $USERNAME
+satat_vps_ssh_configure $TARGET_HOSTNAME $PORT
+satat_vps_firewall_configure $TARGET_HOSTNAME $PORT
+ssh-copy-id $USERNAME@$TARGET_HOSTNAME
+satat_vps_changes_activate $TARGET_HOSTNAME
+ssh -p $PORT $TARGET_HOSTNAME
